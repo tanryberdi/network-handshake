@@ -9,6 +9,7 @@ import (
 
 const (
 	LOCALHOST    = "127.0.0.1"
+	PORT         = "8333"
 	WAITINTERVAL = 10 * time.Second
 )
 
@@ -74,18 +75,15 @@ func listen(listener net.Listener) error {
 
 // Returns listener and remote port
 func bindPort() (net.Listener, uint16) {
-	// Bind to port 4000
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:4000", LOCALHOST))
-	if err == nil {
-		return listener, 4001 // If succeeds then remote is port 4001
+	// Bind to port 8333
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:"+PORT, LOCALHOST))
+	if err != nil {
+		fmt.Println("Error binding port", err)
+		return nil, 0
+
 	}
 
-	// If fails, then 4000 is already running another instance so use 4001
-	listener, err = net.Listen("tcp", fmt.Sprintf("%s:4001", LOCALHOST))
-	if err != nil {
-		return nil, 0
-	}
-	return listener, 4000 // In this case remote port is 4000
+	return listener, 8333
 }
 
 func readLine(conn io.Reader) error {
