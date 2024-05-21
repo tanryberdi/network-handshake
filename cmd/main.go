@@ -13,6 +13,14 @@ const (
 	waitInterval = 10 * time.Second
 )
 
+const (
+	msgHello         = "1. Hello! Here are my encryption methods.\n"
+	msgPublicKey     = "2. Hello! Here is my public key\n"
+	msgSecretKey     = "3. Here is encrypted secret-key.\n"
+	msgSampleMessage = "5. This is encrypted sample message.\n"
+	msgVerified      = "6. Verified sample msg. All OK.\n"
+)
+
 func main() {
 	listener, remotePort := bindPort()
 	if listener == nil {
@@ -21,14 +29,14 @@ func main() {
 
 	done := make(chan struct{})
 	go func() {
-		if err := listen(listener); err != nil {
+		if err := startServer(listener); err != nil {
 			fmt.Println(err)
 		}
 		close(done)
 	}()
 
 	go func() {
-		if err := connect(remotePort); err != nil {
+		if err := startClient(remotePort); err != nil {
 			fmt.Println(err)
 		}
 		close(done)
@@ -37,30 +45,35 @@ func main() {
 	<-done
 }
 
-func connect(remotePort uint16) error {
+func startServer(listener net.Listener) error {
 	for {
-		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", localhost, remotePort))
-		if err == nil {
-			if err := doHandshake(conn); err != nil {
-				fmt.Println(err)
-			}
-			return nil
+		conn, err := listener.Accept()
+		if err != nil {
+			return err
 		}
 
-		fmt.Println("Waiting for remote")
-		time.Sleep(waitInterval)
-	}
-}
-
-func listen(listener net.Listener) error {
-	for {
-		conn, _ := listener.Accept()
 		if err := processIncoming(conn); err != nil {
 			fmt.Println("handshake failed, try again.", err)
 		} else {
 			fmt.Println("handshake success.")
 			return nil
 		}
+	}
+}
+
+func startClient(remotePort uint16) error {
+	for {
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", localhost, remotePort))
+		if err == nil {
+			if err := doHandshake(conn); err != nil {
+				fmt.Println(err)
+			} else {
+				return nil
+			}
+		}
+
+		fmt.Println("Waiting for remote")
+		time.Sleep(waitInterval)
 	}
 }
 
@@ -86,12 +99,7 @@ func readLine(conn io.Reader) error {
 }
 
 func doHandshake(conn net.Conn) error {
-	messages := []string{
-		"1. Hello! Here are my encryption methods.\n",
-		"3. Here is encrypted secret-key.\n",
-		"5. This is encrypted sample message.\n",
-	}
-
+	messages := []string{msgHello, msgSecretKey, msgSampleMessage}
 	for _, msg := range messages {
 		if _, err := conn.Write([]byte(msg)); err != nil {
 			return err
@@ -106,12 +114,7 @@ func doHandshake(conn net.Conn) error {
 }
 
 func processIncoming(conn net.Conn) error {
-	messages := []string{
-		"2. Hello! Here is my public key\n",
-		"4. Got secret-key.\n",
-		"6. Verified sample msg. All OK.\n",
-	}
-
+	messages := []string{msgPublicKey, msgVerified}
 	for _, msg := range messages {
 		if _, err := conn.Write([]byte(msg)); err != nil {
 			return err
