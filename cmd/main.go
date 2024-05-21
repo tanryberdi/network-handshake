@@ -114,7 +114,7 @@ func doHandshake(conn net.Conn) error {
 }
 
 func processIncoming(conn net.Conn) error {
-	messages := []string{msgPublicKey, msgVerified}
+	messages := []string{msgPublicKey, "4. Got secret-key.\n", msgVerified}
 	for _, msg := range messages {
 		if _, err := conn.Write([]byte(msg)); err != nil {
 			return err
