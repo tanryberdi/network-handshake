@@ -8,19 +8,17 @@ import (
 )
 
 const (
-	LOCALHOST    = "127.0.0.1"
-	PORT         = "8333"
-	WAITINTERVAL = 10 * time.Second
+	localhost    = "127.0.0.1"
+	port         = "8333"
+	waitInterval = 10 * time.Second
 )
 
 func main() {
-	// Bind port for listening
 	listener, remotePort := bindPort()
 	if listener == nil {
 		return
 	}
 
-	// Listen and connect to remote in parallel (Exit on Ctrl+C)
 	done := make(chan struct{})
 	go func() {
 		if err := listen(listener); err != nil {
@@ -39,31 +37,23 @@ func main() {
 	<-done
 }
 
-// Makes a connection to remote/peer. Tries until connection succeeds.
-// Calls handshake on a succeeded remote and breaks loop.
 func connect(remotePort uint16) error {
 	for {
-		// Make a connection
-		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", LOCALHOST, remotePort))
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", localhost, remotePort))
 		if err == nil {
-			// Start communication
 			if err := doHandshake(conn); err != nil {
 				fmt.Println(err)
 			}
-
 			return nil
 		}
 
 		fmt.Println("Waiting for remote")
-		// Wait some time and try again
-		time.Sleep(WAITINTERVAL)
+		time.Sleep(waitInterval)
 	}
 }
 
-// Listens for connections from another peer. Processes incoming connection and breaks loop.
 func listen(listener net.Listener) error {
 	for {
-		// addr is not used as we know it is localhost
 		conn, _ := listener.Accept()
 		if err := processIncoming(conn); err != nil {
 			fmt.Println("handshake failed, try again.", err)
@@ -74,14 +64,11 @@ func listen(listener net.Listener) error {
 	}
 }
 
-// Returns listener and remote port
 func bindPort() (net.Listener, uint16) {
-	// Bind to port 8333
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:"+PORT, LOCALHOST))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", localhost, port))
 	if err != nil {
 		fmt.Println("Error binding port", err)
 		return nil, 0
-
 	}
 
 	return listener, 8333
@@ -98,58 +85,42 @@ func readLine(conn io.Reader) error {
 	return nil
 }
 
-// Initiate handshake
 func doHandshake(conn net.Conn) error {
-	_, err := conn.Write([]byte("1. Hello! Here are my encryption methods.\n"))
-	if err != nil {
-		return err
+	messages := []string{
+		"1. Hello! Here are my encryption methods.\n",
+		"3. Here is encrypted secret-key.\n",
+		"5. This is encrypted sample message.\n",
 	}
 
-	if err := readLine(conn); err != nil {
-		return err
-	}
-	_, err = conn.Write([]byte("3. Here is encrypted secret-key.\n"))
-	if err != nil {
-		return err
+	for _, msg := range messages {
+		if _, err := conn.Write([]byte(msg)); err != nil {
+			return err
+		}
+
+		if err := readLine(conn); err != nil {
+			return err
+		}
 	}
 
-	if err := readLine(conn); err != nil {
-		return err
-	}
-
-	_, err = conn.Write([]byte("5. This is encrypted sample message.\n"))
-	if err != nil {
-		return err
-	}
-
-	return readLine(conn)
+	return nil
 }
 
-// Process incoming handshake request
 func processIncoming(conn net.Conn) error {
-	if err := readLine(conn); err != nil {
-		return err
+	messages := []string{
+		"2. Hello! Here is my public key\n",
+		"4. Got secret-key.\n",
+		"6. Verified sample msg. All OK.\n",
 	}
 
-	_, err := conn.Write([]byte("2. Hello! Here is my public key\n"))
-	if err != nil {
-		return err
+	for _, msg := range messages {
+		if _, err := conn.Write([]byte(msg)); err != nil {
+			return err
+		}
+
+		if err := readLine(conn); err != nil {
+			return err
+		}
 	}
 
-	if err := readLine(conn); err != nil {
-		return err
-	}
-
-	_, err = conn.Write([]byte("4. Got secret-key.\n"))
-	if err != nil {
-		return err
-	}
-
-	if err := readLine(conn); err != nil {
-		return err
-	}
-
-	_, err = conn.Write([]byte("6. Verified sample msg. All OK.\n"))
-
-	return err
+	return nil
 }
