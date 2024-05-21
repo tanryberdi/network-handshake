@@ -50,6 +50,7 @@ func connect(remotePort uint16) error {
 			if err := doHandshake(conn); err != nil {
 				fmt.Println(err)
 			}
+
 			return nil
 		}
 
@@ -92,6 +93,7 @@ func readLine(conn io.Reader) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Print(string(buf[:n]))
 	return nil
 }
@@ -102,6 +104,7 @@ func doHandshake(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
+
 	if err := readLine(conn); err != nil {
 		return err
 	}
@@ -109,13 +112,16 @@ func doHandshake(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
+
 	if err := readLine(conn); err != nil {
 		return err
 	}
+
 	_, err = conn.Write([]byte("5. This is encrypted sample message.\n"))
 	if err != nil {
 		return err
 	}
+
 	return readLine(conn)
 }
 
@@ -124,20 +130,26 @@ func processIncoming(conn net.Conn) error {
 	if err := readLine(conn); err != nil {
 		return err
 	}
+
 	_, err := conn.Write([]byte("2. Hello! Here is my public key\n"))
 	if err != nil {
 		return err
 	}
+
 	if err := readLine(conn); err != nil {
 		return err
 	}
+
 	_, err = conn.Write([]byte("4. Got secret-key.\n"))
 	if err != nil {
 		return err
 	}
+
 	if err := readLine(conn); err != nil {
 		return err
 	}
+
 	_, err = conn.Write([]byte("6. Verified sample msg. All OK.\n"))
+
 	return err
 }
