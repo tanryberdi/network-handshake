@@ -28,6 +28,11 @@ git clone https://github.com/tanryberdi/network-handshake.git
 I used niktrix/btcd-docker for bitcoin node implementation. Be sure for running this image and using port 8333 for 
 bitcoin node.
 
+For mine, it is 
+```bash
+docker run -d -p 8333:8333 -v /Users/tanryberdi/Desktop/btcroot --name="btcd-node" niktrix/btcd-docker
+```
+
 ```bash
 go run cmd/main.go
 ```
